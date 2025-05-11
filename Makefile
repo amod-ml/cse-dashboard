@@ -51,3 +51,12 @@ deploy: build ## Build, push, then point Lambda to new image
 	      --region $(AWS_REGION)                    \
 	      --profile $(AWS_PROFILE)
 	@echo "✅ Lambda $(APP_NAME) updated to latest image"
+
+lint: ## Lint the code
+	ruff check .
+
+format: ## Format the code
+	ruff format .
+
+fix: ## Fix the code
+	ruff check --fix .
