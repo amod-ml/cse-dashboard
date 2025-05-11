@@ -9,8 +9,14 @@ AWS_ACCOUNT := $(shell aws sts get-caller-identity                      \
                            --profile $(AWS_PROFILE))
 ECR_URI     := $(AWS_ACCOUNT).dkr.ecr.$(AWS_REGION).amazonaws.com/$(APP_NAME)
 
+# ---------- Lambda performance tuning ----------
+# Default values can be overridden at call-time, e.g. `make provision PROVISIONED=10`
+
+MEM_SIZE     ?= 2048  # MB
+PROVISIONED  ?= 2     # concurrent instances kept warm
+
 # ---------- targets ----------
-.PHONY: help ecr docker-login build push deploy
+.PHONY: help ecr docker-login build push deploy config alias-live provision
 
 help:      ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?##' $(MAKEFILE_LIST) | \
@@ -61,3 +67,37 @@ format: ## Format the code
 
 fix: ## Fix the code
 	ruff check --fix .
+
+# Update the function configuration (memory, timeout, etc.).
+config: ## Update Lambda memory/timeout to improve cold-starts
+	aws lambda update-function-configuration \
+	  --function-name $(APP_NAME) \
+	  --memory-size $(MEM_SIZE) \
+	  --timeout 30 \
+	  --region $(AWS_REGION) \
+	  --profile $(AWS_PROFILE)
+
+# Point/create an alias called "live" at the latest published version.
+alias-live: ## Create or update the 'live' alias to the latest version
+	$(eval LATEST_VER=$(shell aws lambda list-versions-by-function --function-name $(APP_NAME) --region $(AWS_REGION) --profile $(AWS_PROFILE) --query 'Versions[-1].Version' --output text))
+	-aws lambda update-alias \
+	  --function-name $(APP_NAME) \
+	  --function-version $(LATEST_VER) \
+	  --name live \
+	  --region $(AWS_REGION) \
+	  --profile $(AWS_PROFILE) || true
+	-aws lambda create-alias \
+	  --function-name $(APP_NAME) \
+	  --function-version $(LATEST_VER) \
+	  --name live \
+	  --region $(AWS_REGION) \
+	  --profile $(AWS_PROFILE) || true
+
+# Allocate provisioned concurrency to eliminate cold-starts in production.
+provision: alias-live ## Attach provisioned concurrency to alias 'live'
+	aws lambda put-provisioned-concurrency-config \
+	  --function-name $(APP_NAME) \
+	  --qualifier live \
+	  --provisioned-concurrent-executions $(PROVISIONED) \
+	  --region $(AWS_REGION) \
+	  --profile $(AWS_PROFILE)
