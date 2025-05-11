@@ -1,0 +1,27 @@
+/* Light mode (default) */
+.theme-root {
+  color: #212529;
+  background-color: #F8F9FA;
+  transition: background-color 0.3s, color 0.3s;
+}
+
+.theme-root.dark-mode {
+  color: #F5F6F7 !important;
+  background-color: #18191A !important;
+}
+
+.theme-root.dark-mode h1,
+.theme-root.dark-mode h2,
+.theme-root.dark-mode h3,
+.theme-root.dark-mode h4,
+.theme-root.dark-mode h5,
+.theme-root.dark-mode h6,
+.theme-root.dark-mode label,
+.theme-root.dark-mode .dash-table-container,
+.theme-root.dark-mode .dash-table-container * {
+  color: #F5F6F7 !important;
+}
+
+.theme-root.dark-mode .dash-header {
+  background-color: #222 !important;
+} 
