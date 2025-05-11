@@ -38,7 +38,8 @@ build: ecr docker-login ## Build multi-arch (arm64) image & push
 	    --platform linux/arm64                       \
 	    --provenance=false --sbom=false              \
 	    --tag $(ECR_URI):latest                      \
-	    --output type=image,push=true .
+	    --output type=image,push=true                \
+	    .
 
 push: ## No-op (image already pushed by buildx); keep for symmetry
 	@echo "Image is at $(ECR_URI):latest"
